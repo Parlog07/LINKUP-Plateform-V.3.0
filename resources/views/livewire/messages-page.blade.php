@@ -3,12 +3,12 @@
     <!-- Header -->
     <div class="flex items-center gap-3 border-b px-6 py-4 bg-gray-50">
         <div class="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
-            {{ strtoupper(substr($receiver->name, 0, 1)) }}
+            {{ strtoupper(substr($receiver->first_name ?? 'U', 0, 1)) }}
         </div>
 
         <div>
             <h2 class="font-semibold text-lg leading-tight">
-                {{ $receiver->name }}
+                {{ $receiver->first_name }} {{ $receiver->last_name }}
             </h2>
             <p class="text-xs text-gray-500">
                 Active now
@@ -21,7 +21,7 @@
         id="messages-container"
         class="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-gradient-to-b from-gray-50 to-white"
     >
-        @forelse($messages as $msg)
+        @forelse($chatMessages as $msg)
             @php $isMe = $msg->user_id === auth()->id(); @endphp
 
             <div class="flex {{ $isMe ? 'justify-end' : 'justify-start' }}">
@@ -29,7 +29,7 @@
 
                     @if(!$isMe)
                         <span class="text-xs text-gray-500 ml-1 mb-1 block">
-                            {{ $msg->user->name }}
+                            {{ $msg->user->first_name }} {{ $msg->user->last_name }}
                         </span>
                     @endif
 
@@ -62,7 +62,7 @@
     >
         <div class="flex items-center gap-3">
             <input
-                wire:model.defer="body"
+                wire:model="body"
                 type="text"
                 placeholder="Type a message…"
                 autocomplete="off"
@@ -88,15 +88,41 @@
 @push('scripts')
 <script>
     document.addEventListener('livewire:init', () => {
-        Echo.private('conversation.{{ $conversation->id }}')
-            .listen('.message.sent', (e) => {
-                @this.call('messageReceived', { message: e.message });
-            });
+        // Initialize Echo listener when Livewire is ready
+        const conversationId = {{ $conversation->id }};
+        
+        if (window.Echo) {
+            window.Echo.private('conversation.' + conversationId)
+                .listen('.message.sent', (e) => {
+                    console.log('📨 Message received via Echo:', e);
+                    @this.call('messageReceived', { message: e.message });
+                })
+                .error((error) => {
+                    console.error('❌ Echo error:', error);
+                });
+        } else {
+            console.warn('⚠️ Echo not initialized');
+        }
     });
 
+    // Auto-scroll when new messages arrive
     Livewire.on('scrollToBottom', () => {
-        const container = document.getElementById('messages-container');
-        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+        setTimeout(() => {
+            const container = document.getElementById('messages-container');
+            if (container) {
+                container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+            }
+        }, 100);
+    });
+
+    // Also scroll on initial load
+    document.addEventListener('livewire:load', () => {
+        setTimeout(() => {
+            const container = document.getElementById('messages-container');
+            if (container) {
+                container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
+            }
+        }, 200);
     });
 </script>
 @endpush

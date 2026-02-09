@@ -9,14 +9,14 @@ class MessageController extends Controller
 {
     public function show($userId)
     {
-        $receiver = User::findOrFail($userId);
+        $user = User::findOrFail($userId);
         
         // CRITICAL: Prevent messaging yourself
-        if ($receiver->id === auth()->id()) {
+        if ($user->id === auth()->id()) {
             return redirect()->route('dashboard')
                 ->with('error', 'You cannot message yourself.');
         }
         
-        return view('messages.show', compact('receiver'));
+        return view('messages.show', compact('user'));
     }
 }

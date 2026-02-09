@@ -92,34 +92,34 @@ class User extends Authenticatable
     /**
      * Get all confirmed friends (merged list).
      */
-    public function getFriends()
-    {
-        // 1. Friends where I accepted THEIR request
-        $friendsAsReceiver = FriendRequest::where('user_id', $this->id)
-            ->where('status', 'accepted')
-            ->join('users', 'friend_requests.request_sender_id', '=', 'users.id')
-            ->select(
-                'friend_requests.*',
-                'users.first_name',
-                'users.last_name',
-                'users.image', // Fixed from 'image'
-                'users.username'
-            )->get();
+public function getFriends()
+{
+    $friendsAsReceiver = FriendRequest::where('user_id', $this->id)
+        ->where('status', 'accepted')
+        ->join('users', 'friend_requests.request_sender_id', '=', 'users.id')
+        ->select(
+            'friend_requests.*',
+            'users.id as friend_id',
+            'users.first_name',
+            'users.last_name',
+            'users.image',
+            'users.username'
+        )->get();
 
-        // 2. Friends where they accepted MY request
-        $friendsAsSender = FriendRequest::where('request_sender_id', $this->id)
-            ->where('status', 'accepted')
-            ->join('users', 'friend_requests.user_id', '=', 'users.id')
-            ->select(
-                'friend_requests.*', 
-                'users.first_name', 
-                'users.last_name', 
-                'users.image', // Fixed from 'image'
-                'users.username'
-            )->get();
+    $friendsAsSender = FriendRequest::where('request_sender_id', $this->id)
+        ->where('status', 'accepted')
+        ->join('users', 'friend_requests.user_id', '=', 'users.id')
+        ->select(
+            'friend_requests.*',
+            'users.id as friend_id',
+            'users.first_name',
+            'users.last_name',
+            'users.image',
+            'users.username'
+        )->get();
 
-        return $friendsAsReceiver->merge($friendsAsSender);
-    }
+    return $friendsAsReceiver->merge($friendsAsSender);
+}
 
     // ... inside App\Models\User.php ...
 

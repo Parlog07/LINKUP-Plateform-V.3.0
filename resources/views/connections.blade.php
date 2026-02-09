@@ -216,7 +216,7 @@
                             </button>
                         </form>
 
-                        <form action="{{ route('messages.show', $friend->request_sender_id ) }}" method="GET" class="flex-1">
+                        <form action="{{ route('messages.show', $friend->friend_id ) }}" method="GET" class="flex-1">
                             @csrf
                             @method('HEAD')
                             <button type="submit" class="w-full py-2 px-4 bg-red-50 border border-transparent rounded-lg text-sm font-medium text-gray-600 hover:bg-red-100">

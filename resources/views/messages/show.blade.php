@@ -3,7 +3,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <livewire:messages-page :receiver="$receiver" />
+    <livewire:messages-page :user="$user" />
 @endsection
 
 
