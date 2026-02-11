@@ -1,3 +1,4 @@
+
 <div class="max-w-4xl mx-auto h-[85vh] flex flex-col bg-white shadow-xl rounded-2xl overflow-hidden">
 
     <!-- Header -->
@@ -19,6 +20,7 @@
     <!-- Messages -->
     <div
         id="messages-container"
+        data-conversation-id="{{ $conversation->id }}"
         class="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-gradient-to-b from-gray-50 to-white"
     >
         @forelse($chatMessages as $msg)
@@ -56,73 +58,92 @@
     </div>
 
     <!-- Input -->
-    <form
-        wire:submit.prevent="sendMessage"
-        class="border-t px-6 py-4 bg-white sticky bottom-0"
-    >
-        <div class="flex items-center gap-3">
-            <input
-                wire:model="body"
-                type="text"
-                placeholder="Type a message…"
-                autocomplete="off"
-                class="flex-1 border border-gray-300 rounded-full px-5 py-3 text-sm
-                       focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
+    <div class="border-t px-6 py-4 bg-white sticky bottom-0">
+        <form
+            wire:submit.prevent="sendMessage"
+            onsubmit="return false;"
+        >
+            <div class="flex items-center gap-3">
+                <input
+                    wire:model="body"
+                    type="text"
+                    placeholder="Type a message…"
+                    autocomplete="off"
+                    class="flex-1 border border-gray-300 rounded-full px-5 py-3 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    wire:keydown.enter.prevent="sendMessage"
+                >
 
-            <button
-                type="submit"
-                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3
-                       rounded-full font-semibold transition shadow"
-            >
-                Send
-            </button>
-        </div>
+                <button
+                    type="submit"
+                    wire:loading.attr="disabled"
+                    wire:target="sendMessage"
+                    class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-3
+                           rounded-full font-semibold transition shadow"
+                >
+                    <span wire:loading.remove wire:target="sendMessage">Send</span>
+                    <span wire:loading wire:target="sendMessage">Sending...</span>
+                </button>
+            </div>
 
-        @error('body')
-            <p class="text-red-500 text-xs mt-2 ml-2">{{ $message }}</p>
-        @enderror
-    </form>
+            @error('body')
+                <p class="text-red-500 text-xs mt-2 ml-2">{{ $message }}</p>
+            @enderror
+        </form>
+    </div>
 </div>
 
-@push('scripts')
+@push('script')
 <script>
-    document.addEventListener('livewire:init', () => {
-        // Initialize Echo listener when Livewire is ready
-        const conversationId = {{ $conversation->id }};
-        
-        if (window.Echo) {
-            window.Echo.private('conversation.' + conversationId)
-                .listen('.message.sent', (e) => {
-                    console.log('📨 Message received via Echo:', e);
-                    @this.call('messageReceived', { message: e.message });
-                })
-                .error((error) => {
-                    console.error('❌ Echo error:', error);
-                });
-        } else {
-            console.warn('⚠️ Echo not initialized');
+document.addEventListener('livewire:initialized', function () {
+
+    function initEcho() {
+        const container = document.getElementById('messages-container');
+        if (!container) return;
+
+        const conversationId = container.dataset.conversationId;
+
+        if (!conversationId) {
+            console.error('Conversation ID missing');
+            return;
         }
-    });
 
-    // Auto-scroll when new messages arrive
-    Livewire.on('scrollToBottom', () => {
-        setTimeout(() => {
-            const container = document.getElementById('messages-container');
-            if (container) {
-                container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
-            }
-        }, 100);
-    });
+        Echo.private(`conversation.${conversationId}`)
+            .listen('.message.sent', (e) => {
+                Livewire.dispatch('message-received', {
+                    message: e.message
+                });
+            });
+    }
 
-    // Also scroll on initial load
-    document.addEventListener('livewire:load', () => {
-        setTimeout(() => {
-            const container = document.getElementById('messages-container');
-            if (container) {
-                container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
-            }
-        }, 200);
-    });
+    subscribeToCOnversation();
+
+    document.addEventListener('livewire:navigated', () => {
+        subscribeToCOnversation();
+    })
+
+});
 </script>
 @endpush
+
+
+
+
+@once
+@push('script')
+<script>
+document.addEventListener('livewire:initialiazed', () => {
+    Livewire.on('scroll-to-bottom', () => {
+        const container = document.getElementById('messages-container');
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
+    });
+});
+</script>
+@endpush
+@endonce
+
+
+
+

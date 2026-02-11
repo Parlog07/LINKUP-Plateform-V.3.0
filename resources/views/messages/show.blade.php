@@ -4,7 +4,10 @@
 
 @section('content')
     <livewire:messages-page :user="$user" />
+
 @endsection
+
+
 
 
 

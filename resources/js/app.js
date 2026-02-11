@@ -1,10 +1,7 @@
 import './bootstrap';
-import Alpine from 'alpinejs';
 
-window.Alpine = Alpine;
-Alpine.start();
 
-// Listen for friend request notifications
+
 document.addEventListener('DOMContentLoaded', function() {
     const currentUserId = window.currentUserId;
     
@@ -26,9 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Notification display function
 function showNotification(message) {
-    // Create notification element
     const notification = document.createElement('div');
     notification.className = 'fixed top-4 right-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-4 rounded-lg shadow-xl z-50 animate-slide-in flex items-center space-x-3';
     notification.innerHTML = `
@@ -45,7 +40,6 @@ function showNotification(message) {
     
     document.body.appendChild(notification);
     
-    // Auto remove after 5 seconds
     setTimeout(() => {
         notification.style.opacity = '0';
         notification.style.transform = 'translateX(100%)';
@@ -53,7 +47,6 @@ function showNotification(message) {
     }, 5000);
 }
 
-// Add animation styles
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slide-in {

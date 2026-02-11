@@ -21,18 +21,25 @@ class PrivateMessageSent implements ShouldBroadcast
     public function __construct(Message $message)
     {
         $this->message = $message->load('user');
-        $this->conversationId = $message->conversation_id;
+        
     }
 
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('conversation.' . $this->conversationId),
+            new PrivateChannel('conversation.' . $this->message->conversation_id),
         ];
     }
 
     public function broadcastAs()
     {
         return 'message.sent';
+    }
+
+        public function broadcastWith()
+    {
+        return [
+            'message' => $this->message->toArray(),
+        ];
     }
 }

@@ -23,7 +23,9 @@ class MessagesPage extends Component
         'body' => 'required|string|max:1000',
     ];
 
-    protected $listeners = ['messageReceived'];
+    protected $listeners = [
+      'message-received' => 'messageReceived'
+      ];
 
     public function mount(User $user)
     {
@@ -72,34 +74,39 @@ class MessagesPage extends Component
     {
         $this->validate();
 
+        // Don't send empty messages
+        if (empty(trim($this->body))) {
+            return;
+        }
+
+        // Create the message
         $message = Message::create([
             'conversation_id' => $this->conversation->id,
             'user_id' => Auth::id(),
-            'body' => $this->body,
+            'body' => trim($this->body),
         ]);
+
+        $message->load('user');
+
+        $this->chatMessages->push($message);
+
+        $this->body = '';
 
         broadcast(new PrivateMessageSent($message))->toOthers();
 
-        $this->chatMessages->push($message->load('user'));
-
-        $this->reset('body');
-        
-        // Trigger scroll event
-        $this->dispatch('scrollToBottom');
+        $this->dispatch('scroll-to-bottom');
     }
 
     public function messageReceived($payload)
-    {
-        // Ensure we have a message object
-        if (isset($payload['message'])) {
-            $message = is_array($payload['message'])
-                ? (object) $payload['message']
-                : $payload['message'];
+{
+    $message = Message::with('user')->find($payload['message']['id']);
 
-            $this->chatMessages->push($message);
-            $this->dispatch('scrollToBottom');
-        }
-    }
+    if (! $message) return;
+
+    $this->chatMessages->push($message);
+    $this->dispatch('scroll-to-bottom');
+}
+
 
     public function render()
     {

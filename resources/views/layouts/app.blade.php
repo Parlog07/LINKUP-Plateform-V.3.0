@@ -18,8 +18,6 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
         @livewireStyles
-        @livewireScripts
-        @stack('scripts')
 
     </head>
     <body class="font-sans antialiased">
@@ -61,5 +59,8 @@
             }
         });
         </script>
+
+        @livewireScripts
+        @stack('scripts')
     </body>
 </html>
