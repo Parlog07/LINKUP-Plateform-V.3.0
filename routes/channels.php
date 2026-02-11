@@ -12,26 +12,20 @@ Broadcast::channel('user.notifications.{userId}', function ($user, $userId) {
     return (int) $user->id === (int) $userId;
 });
 
-
-
-
-
 Broadcast::channel('conversation.{conversationId}', function ($user, $conversationId) {
-
     $conversation = Conversation::find($conversationId);
 
     if (! $conversation) {
         return false;
     }
 
-    return $user->id === $conversation->user_one
-        || $user->id === $conversation->user_two;
-});
+    if ((int) $user->id !== (int) $conversation->user_one && (int) $user->id !== (int) $conversation->user_two) {
+        return false;
+    }
 
-Broadcast::channel('conversation.{conversationId}', function ($user, $conversationId) {
-
-    logger('Channel hit with:', ['value' => $conversationId]);
-
-    return true;
+    return [
+        'id' => $user->id,
+        'name' => trim(($user->first_name ?? '').' '.($user->last_name ?? '')) ?: ($user->name ?? 'User'),
+    ];
 });
 

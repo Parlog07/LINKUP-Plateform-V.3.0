@@ -11,6 +11,7 @@ class Conversation extends Model
     protected $fillable = [
         'user_one',
         'user_two',
+        'disappearing_enabled',
     ];
 
         protected $casts = [
