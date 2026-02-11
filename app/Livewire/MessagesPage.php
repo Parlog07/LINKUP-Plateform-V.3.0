@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use Livewire\Component;
+use Livewire\Attributes\On;
 use App\Models\User;
 use App\Models\Message;
 use App\Models\Conversation;
@@ -18,12 +19,11 @@ class MessagesPage extends Component
     public Conversation $conversation;
     public ?Collection $chatMessages = null;  // Collection of conversation messages
     public string $body = '';
+    public bool $disappearingEnabled = false;
 
     protected $rules = [
         'body' => 'required|string|max:1000',
     ];
-
-    protected $listeners = ['messageReceived'];
 
     public function mount(User $user)
     {
@@ -63,6 +63,9 @@ class MessagesPage extends Component
             ->with('user')
             ->orderBy('created_at')
             ->get();
+
+            $this->disappearingEnabled = $this->conversation->disappearing_enabled;
+
     }
 
 
@@ -72,34 +75,46 @@ class MessagesPage extends Component
     {
         $this->validate();
 
+        // Don't send empty messages
+        if (empty(trim($this->body))) {
+            return;
+        }
+
+        // Create the message
         $message = Message::create([
             'conversation_id' => $this->conversation->id,
             'user_id' => Auth::id(),
-            'body' => $this->body,
+            'body' => trim($this->body),
+            'expires_at' => $this->conversation->disappearingEnabled
+            ? now()->addHours(24)
+            : null,
         ]);
+
+        $message->load('user');
+
+        $this->chatMessages->push($message);
+
+        $this->body = '';
 
         broadcast(new PrivateMessageSent($message))->toOthers();
 
-        $this->chatMessages->push($message->load('user'));
-
-        $this->reset('body');
-        
-        // Trigger scroll event
-        $this->dispatch('scrollToBottom');
+        $this->dispatch('scroll-to-bottom');
     }
 
-    public function messageReceived($payload)
+    #[On('message-received')]
+    public function messageReceived($message = null)
     {
-        // Ensure we have a message object
-        if (isset($payload['message'])) {
-            $message = is_array($payload['message'])
-                ? (object) $payload['message']
-                : $payload['message'];
+        $messageId = is_array($message) ? ($message['id'] ?? null) : null;
+        $message = Message::with('user')->find($messageId);
 
-            $this->chatMessages->push($message);
-            $this->dispatch('scrollToBottom');
+        if (! $message) {
+            return;
         }
+
+        $this->chatMessages->push($message);
+        $this->dispatch('scroll-to-bottom');
     }
+
 
     public function render()
     {
@@ -118,12 +133,39 @@ public function startChat(int $userTwoId)
         ? [$userOneId, $userTwoId]
         : [$userTwoId, $userOneId];
 
-    $conversation = Conversation::firstOrCreate(
-        ['user_one_id' => $first, 'user_two_id' => $second],
-        [] // extra defaults if needed
-    );
+    $conversation = Conversation::firstOrCreate([
+        'user_one' => $first,
+        'user_two' => $second,
+    ]);
 
     // Either redirect or emit event / set state
-    return redirect()->route('messages.show', $conversation);
+    return redirect()->route('messages.show', $userTwoId);
 }
+public function toggleDisappearing()
+{
+    $this->disappearingEnabled = ! $this->disappearingEnabled;
+
+    $this->conversation->update([
+        'disappearing_enabled' => $this->disappearingEnabled,
+    ]);
+
+    broadcast(new \App\Events\DisappearingToggled(
+        $this->conversation->id,
+        $this->disappearingEnabled
+    ))->toOthers();
+}
+
+protected function getListeners()
+{
+    return [
+        "echo-private:conversation.{$this->conversation->id},DisappearingToggled" => 'handleToggle',
+    ];
+}
+
+public function handleToggle($event)
+{
+    $this->disappearingEnabled = $event['enabled'];
+}
+
+
 }

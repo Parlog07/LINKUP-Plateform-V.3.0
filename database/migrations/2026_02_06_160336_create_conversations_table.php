@@ -11,60 +11,53 @@ return new class extends Migration
      */
     public function up(): void
     {
-Schema::create('conversations', function (Blueprint $table) {
-    $table->id();
+        Schema::create('conversations', function (Blueprint $table) {
+            $table->id();
 
-    $table->foreignId('user_one')
-        ->constrained('users')
-        ->cascadeOnDelete();
+            $table->foreignId('user_one')
+                ->constrained('users')
+                ->cascadeOnDelete();
+            $table->foreignId('user_two')
+                ->constrained('users')
+                ->cascadeOnDelete();
+            $table->boolean('disappearing_enabled')->default(false);
+            $table->timestamps();
+            $table->unique(['user_one', 'user_two']);
+        });
 
-    $table->foreignId('user_two')
-        ->constrained('users')
-        ->cascadeOnDelete();
+        Schema::create('messages', function (Blueprint $table) {
+            $table->id();
 
-    $table->timestamps();
+            $table->foreignId('conversation_id')
+                ->constrained()
+                ->cascadeOnDelete();
 
-    // Prevent duplicate conversations
-    $table->unique(['user_one', 'user_two']);
-});
+            $table->foreignId('user_id')
+                ->constrained()
+                ->cascadeOnDelete();
 
-Schema::create('messages', function (Blueprint $table) {
-    $table->id();
+            $table->text('body');
+            $table->timestamp('expires_at')->nullable()->index();
 
-    $table->foreignId('conversation_id')
-        ->constrained()
-        ->cascadeOnDelete();
-
-    $table->foreignId('user_id')
-        ->constrained()
-        ->cascadeOnDelete();
-
-    $table->text('body');
-
-    $table->timestamps();
-});
+            $table->timestamps();
+        });
 
 
-Schema::create('message_reads', function (Blueprint $table) {
-    $table->id();
+        Schema::create('message_reads', function (Blueprint $table) {
+            $table->id();
 
-    $table->foreignId('message_id')
-        ->constrained()
-        ->cascadeOnDelete();
+            $table->foreignId('message_id')
+                ->constrained()
+                ->cascadeOnDelete();
 
-    $table->foreignId('user_id')
-        ->constrained()
-        ->cascadeOnDelete();
+            $table->foreignId('user_id')
+                ->constrained()
+                ->cascadeOnDelete();
 
-    $table->timestamp('read_at')->nullable();
+            $table->timestamp('read_at')->nullable();
 
-    $table->unique(['message_id', 'user_id']);
-});
-
-
-
-
-
+            $table->unique(['message_id', 'user_id']);
+        });
     }
 
     /**

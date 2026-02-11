@@ -7,6 +7,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB; 
+use Illuminate\Support\Facades\Cache;
 
 class User extends Authenticatable
 {
@@ -51,6 +52,15 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    protected $appends = [
+        'is_online',
+    ];
+
+    public function getIsOnlineAttribute(): bool
+    {
+        return Cache::has('user-is-online-'.$this->id);
     }
 
 
