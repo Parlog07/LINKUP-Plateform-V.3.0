@@ -188,6 +188,37 @@
                 </div>
             </div>
         </div>
+{{-- Here is the link part  --}}
+        <div class="mt-6 mb-6 p-4 bg-white dark:bg-white shadow sm:rounded-lg">
+    <h2 class="text-lg font-medium text-gray-900 dark:text-black">
+        Invite a friend (Link / QR)
+    </h2>
+
+    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+        Generate an invite link valid for 1 hour.
+    </p>
+
+    <form method="POST" action="{{ route('friends.invite.generate') }}" class="mt-4">
+        @csrf
+        <button type="submit"
+            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold">
+            Generate Invite Link
+        </button>
+    </form>
+
+    @if(session('invite_link'))
+        <div class="mt-4 p-3 bg-gray-800 dark:bg-gray-100 rounded">
+            <p class="font-semibold text-gray-900 dark:text-gray-100">Your invite link:</p>
+            <a class="text-blue-600 break-all" href="{{ session('invite_link') }}">
+                {{ session('invite_link') }}
+            </a>
+        </div>
+        <div class="mt-4">
+            {!! QrCode::size(180)->generate(session('invite_link')) !!}
+        </div>  
+    @endif
+</div>
+
 
         <div class="bg-white rounded-xl shadow-md overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200">
