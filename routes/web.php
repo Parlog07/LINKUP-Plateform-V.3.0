@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\FriendInviteController;
 
 Route::get('/', function () {
     return view('auth.welcome');
@@ -68,5 +69,22 @@ Route::middleware('auth')->group(function () {
         Route::get('/messages/{user}', [App\Http\Controllers\MessageController::class, 'show'])
         ->name('messages.show');
 });
+
+
+
+
+Route::middleware('auth')->group(function () {
+    Route::post('/friends/invite', [FriendInviteController::class, 'generate'])
+        ->name('friends.invite.generate');
+
+    Route::get('/friends/invite/accept', [FriendInviteController::class, 'accept'])
+        ->middleware('signed') // important
+        ->name('friends.invite.accept');
+});
+// Route::get('/friends/invite-test', function () {
+//     return view('invite-test');
+// })->middleware('auth');
+
+
 
 require __DIR__.'/auth.php';
