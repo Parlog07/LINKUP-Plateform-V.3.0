@@ -29,3 +29,7 @@ Broadcast::channel('conversation.{conversationId}', function ($user, $conversati
     ];
 });
 
+Broadcast::channel('user.messages.{id}', function ($user, $id) {
+    return (int) $user->id === (int) $id;
+});
+

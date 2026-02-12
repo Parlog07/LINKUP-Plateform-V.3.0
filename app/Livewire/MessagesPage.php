@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Events\MessageSent;
 use Livewire\Component;
 use Livewire\Attributes\On;
 use App\Models\User;
@@ -29,9 +30,9 @@ class MessagesPage extends Component
     {
         // Initialize chatMessages first to avoid uninitialized property error
         $this->chatMessages = collect([]);
-        
+
         $authId = Auth::id();
-        
+
         if (! $authId) {
             redirect()->route('login')->send();
             return;
@@ -64,8 +65,7 @@ class MessagesPage extends Component
             ->orderBy('created_at')
             ->get();
 
-            $this->disappearingEnabled = $this->conversation->disappearing_enabled;
-
+        $this->disappearingEnabled = $this->conversation->disappearing_enabled;
     }
 
 
@@ -86,8 +86,8 @@ class MessagesPage extends Component
             'user_id' => Auth::id(),
             'body' => trim($this->body),
             'expires_at' => $this->conversation->disappearingEnabled
-            ? now()->addHours(24)
-            : null,
+                ? now()->addHours(24)
+                : null,
         ]);
 
         $message->load('user');
@@ -97,6 +97,15 @@ class MessagesPage extends Component
         $this->body = '';
 
         broadcast(new PrivateMessageSent($message))->toOthers();
+        $conversation = $message->conversation;
+
+        $receiverId = $conversation->user_one == $message->user_id
+            ? $conversation->user_two
+            : $conversation->user_one;
+
+        broadcast(new MessageSent($message, $receiverId))->toOthers();
+
+
 
         $this->dispatch('scroll-to-bottom');
     }
@@ -122,50 +131,48 @@ class MessagesPage extends Component
     }
 
 
-public function startChat(int $userTwoId)
-{
-    $userOneId = Auth::id();            // current logged-in user
-    abort_if($userOneId === null, 403);
-    abort_if($userOneId === $userTwoId, 403);
+    public function startChat(int $userTwoId)
+    {
+        $userOneId = Auth::id();            // current logged-in user
+        abort_if($userOneId === null, 403);
+        abort_if($userOneId === $userTwoId, 403);
 
-    // Normalize order so each pair has only one conversation row
-    [$first, $second] = $userOneId < $userTwoId
-        ? [$userOneId, $userTwoId]
-        : [$userTwoId, $userOneId];
+        // Normalize order so each pair has only one conversation row
+        [$first, $second] = $userOneId < $userTwoId
+            ? [$userOneId, $userTwoId]
+            : [$userTwoId, $userOneId];
 
-    $conversation = Conversation::firstOrCreate([
-        'user_one' => $first,
-        'user_two' => $second,
-    ]);
+        $conversation = Conversation::firstOrCreate([
+            'user_one' => $first,
+            'user_two' => $second,
+        ]);
 
-    // Either redirect or emit event / set state
-    return redirect()->route('messages.show', $userTwoId);
-}
-public function toggleDisappearing()
-{
-    $this->disappearingEnabled = ! $this->disappearingEnabled;
+        // Either redirect or emit event / set state
+        return redirect()->route('messages.show', $userTwoId);
+    }
+    public function toggleDisappearing()
+    {
+        $this->disappearingEnabled = ! $this->disappearingEnabled;
 
-    $this->conversation->update([
-        'disappearing_enabled' => $this->disappearingEnabled,
-    ]);
+        $this->conversation->update([
+            'disappearing_enabled' => $this->disappearingEnabled,
+        ]);
 
-    broadcast(new \App\Events\DisappearingToggled(
-        $this->conversation->id,
-        $this->disappearingEnabled
-    ))->toOthers();
-}
+        broadcast(new \App\Events\DisappearingToggled(
+            $this->conversation->id,
+            $this->disappearingEnabled
+        ))->toOthers();
+    }
 
-protected function getListeners()
-{
-    return [
-        "echo-private:conversation.{$this->conversation->id},DisappearingToggled" => 'handleToggle',
-    ];
-}
+    protected function getListeners()
+    {
+        return [
+            "echo-private:conversation.{$this->conversation->id},DisappearingToggled" => 'handleToggle',
+        ];
+    }
 
-public function handleToggle($event)
-{
-    $this->disappearingEnabled = $event['enabled'];
-}
-
-
+    public function handleToggle($event)
+    {
+        $this->disappearingEnabled = $event['enabled'];
+    }
 }
