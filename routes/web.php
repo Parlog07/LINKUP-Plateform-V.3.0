@@ -66,7 +66,14 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+        Route::get('/messages/attachments/{message}/preview', [App\Http\Controllers\MessageController::class, 'previewAttachment'])
+        ->name('messages.attachments.preview');
+
+        Route::get('/messages/attachments/{message}', [App\Http\Controllers\MessageController::class, 'downloadAttachment'])
+        ->name('messages.attachments.download');
+
         Route::get('/messages/{user}', [App\Http\Controllers\MessageController::class, 'show'])
+        ->whereNumber('user')
         ->name('messages.show');
 });
 

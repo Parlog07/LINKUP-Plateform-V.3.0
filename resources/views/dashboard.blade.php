@@ -209,7 +209,7 @@
     @if(session('invite_link'))
         <div class="mt-4 p-3 bg-gray-800 dark:bg-gray-100 rounded">
             <p class="font-semibold text-gray-900 dark:text-gray-100">Your invite link:</p>
-            <a class="text-blue-600 break-all" href="{{ session('invite_link') }}">
+            <a id = "TextTo" class="text-blue-600 break-all" href="{{ session('invite_link') }}">
                 {{ session('invite_link') }}
             </a>
         </div>

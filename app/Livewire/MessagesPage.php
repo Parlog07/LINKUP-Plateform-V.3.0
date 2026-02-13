@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Events\MessageSent;
 use Livewire\Component;
 use Livewire\Attributes\On;
+use Livewire\WithFileUploads;
 use App\Models\User;
 use App\Models\Message;
 use App\Models\Conversation;
@@ -16,14 +17,18 @@ use Illuminate\Support\Facades\Auth;
 
 class MessagesPage extends Component
 {
+    use WithFileUploads;
+
     public User $receiver;
     public Conversation $conversation;
     public ?Collection $chatMessages = null;  // Collection of conversation messages
     public string $body = '';
+    public $attachment = null;
     public bool $disappearingEnabled = false;
 
     protected $rules = [
-        'body' => 'required|string|max:1000',
+        'body' => 'nullable|string|max:1000|required_without:attachment',
+        'attachment' => 'nullable|file|max:51200|mimes:jpg,jpeg,png,gif,webp,mp4,mov,webm,m4v,avi,mkv,pdf,doc,docx,txt,zip,rar',
     ];
 
     public function mount(User $user)
@@ -75,17 +80,33 @@ class MessagesPage extends Component
     {
         $this->validate();
 
-        // Don't send empty messages
-        if (empty(trim($this->body))) {
+        $body = trim($this->body);
+        if ($body === '' && ! $this->attachment) {
             return;
+        }
+
+        $attachmentPath = null;
+        $attachmentName = null;
+        $attachmentMime = null;
+        $attachmentSize = null;
+
+        if ($this->attachment) {
+            $attachmentName = $this->attachment->getClientOriginalName();
+            $attachmentMime = $this->attachment->getClientMimeType();
+            $attachmentSize = $this->attachment->getSize();
+            $attachmentPath = $this->attachment->store('chat-attachments', 'public');
         }
 
         // Create the message
         $message = Message::create([
             'conversation_id' => $this->conversation->id,
             'user_id' => Auth::id(),
-            'body' => trim($this->body),
-            'expires_at' => $this->conversation->disappearingEnabled
+            'body' => $body,
+            'attachment_path' => $attachmentPath,
+            'attachment_name' => $attachmentName,
+            'attachment_mime' => $attachmentMime,
+            'attachment_size' => $attachmentSize,
+            'expires_at' => $this->conversation->disappearing_enabled
                 ? now()->addHours(24)
                 : null,
         ]);
@@ -95,6 +116,7 @@ class MessagesPage extends Component
         $this->chatMessages->push($message);
 
         $this->body = '';
+        $this->attachment = null;
 
         broadcast(new PrivateMessageSent($message))->toOthers();
         $conversation = $message->conversation;
