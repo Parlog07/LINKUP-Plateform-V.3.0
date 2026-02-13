@@ -27,6 +27,7 @@ window.Echo.private(`user.messages.${currentUserId}`)
     .listen('MessageSent', (event) => {
         console.log('📩 New message received:', event);
 
+        
         showMessageNotification(
             event.message.user.first_name,
             event.message.body,

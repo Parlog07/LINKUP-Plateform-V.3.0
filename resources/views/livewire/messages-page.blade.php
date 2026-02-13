@@ -27,7 +27,7 @@
 
 
 
-@if($conversation->disappearingEnabled)
+@if($conversation->disappearing_enabled)
     <span class="text-sm text-gray-500">
         Messages disappear after 24 hours
     </span>
@@ -53,7 +53,34 @@
                     @endif
                     <div class="relative px-4 py-2 rounded-2xl text-sm leading-relaxed
                         {{ $isMe ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-gray-200 text-gray-900 rounded-bl-sm' }}">
-                        {{ $msg->body }}
+                        @if(!empty($msg->body))
+                            <p>{{ $msg->body }}</p>
+                        @endif
+
+                        @if($msg->attachment_path)
+                            @if($msg->isImageAttachment())
+                                <img
+                                    src="{{ route('messages.attachments.preview', $msg->id) }}"
+                                    alt="{{ $msg->attachment_name ?? 'Image attachment' }}"
+                                    class="mt-2 max-h-64 w-auto rounded-lg border border-gray-300"
+                                >
+                            @elseif($msg->isVideoAttachment())
+                                <video controls class="mt-2 max-h-64 w-full rounded-lg border border-gray-300 bg-black">
+                                    <source
+                                        src="{{ route('messages.attachments.preview', $msg->id) }}"
+                                        type="{{ $msg->attachment_mime ?: 'video/mp4' }}"
+                                    >
+                                    Your browser does not support this video format.
+                                </video>
+                            @endif
+
+                            <a
+                                href="{{ route('messages.attachments.download', $msg->id) }}"
+                                class="mt-2 inline-block underline {{ $isMe ? 'text-blue-100' : 'text-blue-700' }}"
+                            >
+                                Download: {{ $msg->attachment_name ?? 'Attachment' }}
+                            </a>
+                        @endif
                     </div>
                     <div class="text-[11px] text-gray-400 mt-1 {{ $isMe ? 'text-right' : 'text-left' }}">
                         {{ $msg->created_at->format('H:i') }}
@@ -71,6 +98,15 @@
     <div class="border-t px-6 py-4 bg-white sticky bottom-0">
         <form wire:submit.prevent="sendMessage">
             <div class="flex items-center gap-3">
+                <label class="cursor-pointer border border-gray-300 rounded-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
+                    Attach
+                    <input
+                        type="file"
+                        wire:model="attachment"
+                        class="hidden"
+                        accept="image/*,video/*,.pdf,.doc,.docx,.txt,.zip,.rar"
+                    >
+                </label>
                 <input
                     wire:model="body"
                     type="text"
@@ -91,12 +127,25 @@
                     <span wire:loading wire:target="sendMessage">Sending...</span>
                 </button>
             </div>
+            <div wire:loading wire:target="attachment" class="text-xs text-gray-500 mt-2 ml-2">
+                Uploading file...
+            </div>
+            @if($attachment)
+                <p class="text-xs text-gray-500 mt-2 ml-2">
+                    Selected: {{ $attachment->getClientOriginalName() }} (max 50MB)
+                </p>
+            @endif
             @error('body')
+                <p class="text-red-500 text-xs mt-2 ml-2">{{ $message }}</p>
+            @enderror
+            @error('attachment')
                 <p class="text-red-500 text-xs mt-2 ml-2">{{ $message }}</p>
             @enderror
         </form>
     </div>
 </div>
+
+
 
 @push('scripts')
 <script>
